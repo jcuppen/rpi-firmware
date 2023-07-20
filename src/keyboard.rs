@@ -1,5 +1,6 @@
 use cortex_m::delay::Delay;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
+use panic_halt as _;
 use rp_pico::hal::gpio::DynPin;
 use usb_device::class_prelude::*;
 use usbd_hid::descriptor::gen_hid_descriptor;
@@ -32,7 +33,7 @@ pub(crate) struct KeyMap {
 }
 
 impl KeyMap {
-    pub(crate) fn create(matrix: [[u8; 3]; 2]) -> KeyMap {
+    pub(crate) fn new(matrix: [[u8; 3]; 2]) -> KeyMap {
         Self { matrix }
     }
 
@@ -48,7 +49,7 @@ pub(crate) struct Keyboard {
 }
 
 impl Keyboard {
-    pub(crate) fn create(
+    pub(crate) fn new(
         row_pins: [DynPin; 2],
         col_pins: [DynPin; 3],
         keymaps: [KeyMap; 1],
@@ -81,13 +82,11 @@ impl Keyboard {
                     keycodes[keys_pressed as usize] = self.keymaps[1].get_keycode(row, col);
                     keys_pressed += 1;
                     if keys_pressed == 5 {
-                        Keyboard::send_keyboard_report(MyKeyboardReport {
+                        let _ = Keyboard::send_keyboard_report(MyKeyboardReport {
                             modifier: 0,
                             reserved: 0,
                             keycodes,
-                        })
-                        .ok()
-                        .unwrap_or(0);
+                        });
                         return;
                     }
                 }
@@ -97,33 +96,17 @@ impl Keyboard {
             delay.delay_ms(1);
         }
 
-        Keyboard::send_keyboard_report(MyKeyboardReport {
+        let _ = Keyboard::send_keyboard_report(MyKeyboardReport {
             modifier: 0,
             reserved: 0,
             keycodes,
-        })
-        .ok()
-        .unwrap_or(0);
+        });
     }
 
     fn send_keyboard_report(report: MyKeyboardReport) -> Result<usize, UsbError> {
         critical_section::with(|_| unsafe {
             // Now interrupts are disabled, grab the global variable and, if
             // available, send it a HID report
-            USB_HID.as_mut().map(|hid| hid.push_input(&report))
-        })
-        .unwrap()
-    }
-
-    pub(crate) fn send_a() -> Result<usize, UsbError> {
-        critical_section::with(|_| unsafe {
-            // Now interrupts are disabled, grab the global variable and, if
-            // available, send it a HID report
-            let report = MyKeyboardReport {
-                modifier: 0,
-                reserved: 0,
-                keycodes: [0x04, 0, 0, 0, 0, 0],
-            };
             USB_HID.as_mut().map(|hid| hid.push_input(&report))
         })
         .unwrap()

@@ -5,22 +5,22 @@
 mod keyboard;
 // mod rotary_encoder;
 // mod seven_segment_display;
-
-use core::panic::PanicInfo;
 use rp_pico as bsp;
 
-use crate::keyboard::{KeyMap, Keyboard, MyKeyboardReport};
 // use crate::rotary_encoder::{Direction, RotaryEncoder};
 // use crate::seven_segment_display::Glyph::{One, Zero};
+use crate::keyboard::{KeyMap, Keyboard, MyKeyboardReport};
 use bsp::entry;
+use bsp::hal;
 use bsp::hal::clocks::{init_clocks_and_plls, Clock};
+use bsp::hal::gpio::DynPin;
 use bsp::hal::pac;
+use bsp::hal::pac::interrupt;
 use bsp::hal::sio::Sio;
 use bsp::hal::watchdog::Watchdog;
+use bsp::pac::{CorePeripherals, Interrupt, Peripherals};
 use cortex_m::delay::Delay;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
-use rp_pico::hal;
-use rp_pico::hal::gpio::DynPin;
 use usb_device::bus::UsbBusAllocator;
 use usb_device::device::{UsbDevice, UsbDeviceBuilder, UsbVidPid};
 use usbd_hid::descriptor::SerializedDescriptor;
@@ -39,7 +39,7 @@ static mut USB_HID: Option<HIDClass<hal::usb::UsbBus>> = None;
 unsafe fn main() -> ! {
     // START BOILERPLATE
     //// GENERIC
-    let mut pac = pac::Peripherals::take().unwrap();
+    let mut pac = Peripherals::take().unwrap();
     let mut watchdog = Watchdog::new(pac.WATCHDOG);
 
     let clocks = init_clocks_and_plls(
@@ -63,7 +63,7 @@ unsafe fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    let core = pac::CorePeripherals::take().unwrap();
+    let core = CorePeripherals::take().unwrap();
 
     //// OLED
     // let i2c = I2C::i2c0(
@@ -110,7 +110,6 @@ unsafe fn main() -> ! {
     unsafe {
         USB_HID = Some(usb_hid);
         USB_DEVICE = Some(usb_dev);
-        pac::NVIC::unmask(pac::Interrupt::USBCTRL_IRQ);
     }
 
     // END BOILERPLATE
@@ -118,9 +117,9 @@ unsafe fn main() -> ! {
     let row_pins: [DynPin; 2] = [pins.gpio14.into(), pins.gpio15.into()];
     let col_pins: [DynPin; 3] = [pins.gpio11.into(), pins.gpio10.into(), pins.gpio9.into()];
 
-    let layer_one = KeyMap::create([[0x04, 0x05, 0x06], [0x14, 0x15, 0x16]]);
+    let layer_one = KeyMap::new([[0x04, 0x05, 0x06], [0x14, 0x15, 0x16]]);
 
-    let mut kb = Keyboard::create(row_pins, col_pins, [layer_one]);
+    let mut kb = Keyboard::new(row_pins, col_pins, [layer_one]);
 
     let mut delay = Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
 
@@ -137,8 +136,6 @@ unsafe fn main() -> ! {
     //     pins.gpio18,
     // );
 
-    //let mut c = pins.gpio9.into_push_pull_output();
-    //let r = pins.gpio15.into_pull_down_input();
     // Create a text style for drawing the font:
 
     //let mut rotary_encoder = RotaryEncoder::create(pins.gpio13, pins.gpio14, pins.gpio15);
@@ -146,7 +143,12 @@ unsafe fn main() -> ! {
     let mut test = pins.gpio12.into_push_pull_output();
     test.set_low().unwrap();
 
+    unsafe {
+        pac::NVIC::unmask(Interrupt::USBCTRL_IRQ);
+    }
+
     loop {
+        //delay.delay_ms(100);
         // c.set_high().unwrap();
         // if r.is_high().unwrap() {
         //     test.set_high().unwrap();
@@ -156,7 +158,7 @@ unsafe fn main() -> ! {
         // }
         //loop actions
         //rotary_encoder.loop_action();
-        kb.send_report(&mut delay);
+        //kb.send_report(&mut delay);
 
         // remainder of loop
 
@@ -174,17 +176,26 @@ unsafe fn main() -> ! {
         // }
 
         led_pin.set_high().unwrap();
-        // delay.delay_ms(500);
+        delay.delay_ms(500);
 
         led_pin.set_low().unwrap();
         // delay.delay_ms(500);
-        delay.delay_ms(500);
     }
 }
 
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
-}
+// #[panic_handler]
+// fn panic(_info: &PanicInfo) -> ! {
+//     loop {}
+// }
 
+/// This function is called whenever the USB Hardware generates an Interrupt
+/// Request.
+#[allow(non_snake_case)]
+#[interrupt]
+unsafe fn USBCTRL_IRQ() {
+    // Handle USB request
+    let usb_dev = USB_DEVICE.as_mut().unwrap();
+    let usb_hid = USB_HID.as_mut().unwrap();
+    usb_dev.poll(&mut [usb_hid]);
+}
 // End of file

@@ -19,7 +19,7 @@ usb-device = "0.2"
 usbd-hid = "0.6"
 
 critical-section = "1.1"
-
+panic-halt = "0.2"
 fugit = "0.3"
 # cargo build/run
 [profile.dev]
