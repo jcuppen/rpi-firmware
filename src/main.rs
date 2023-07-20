@@ -20,7 +20,7 @@ use bsp::hal::sio::Sio;
 use bsp::hal::watchdog::Watchdog;
 use bsp::pac::{CorePeripherals, Interrupt, Peripherals};
 use cortex_m::delay::Delay;
-use embedded_hal::digital::v2::{InputPin, OutputPin};
+use embedded_hal::digital::v2::{InputPin, OutputPin, StatefulOutputPin};
 use usb_device::bus::UsbBusAllocator;
 use usb_device::device::{UsbDevice, UsbDeviceBuilder, UsbVidPid};
 use usbd_hid::descriptor::SerializedDescriptor;
@@ -147,6 +147,8 @@ unsafe fn main() -> ! {
         pac::NVIC::unmask(Interrupt::USBCTRL_IRQ);
     }
 
+    let mut counter: usize = 0;
+
     loop {
         //delay.delay_ms(100);
         // c.set_high().unwrap();
@@ -158,7 +160,7 @@ unsafe fn main() -> ! {
         // }
         //loop actions
         //rotary_encoder.loop_action();
-        //kb.send_report(&mut delay);
+        kb.send_report(&mut delay);
 
         // remainder of loop
 
@@ -175,11 +177,20 @@ unsafe fn main() -> ! {
         //     Direction::CounterClockwise => ssd.set_glyph(Zero),
         // }
 
-        led_pin.set_high().unwrap();
-        delay.delay_ms(500);
+        if counter % 500 == 0 {
+            if led_pin.is_set_high().unwrap() {
+                led_pin.set_low().ok();
+            } else {
+                led_pin.set_high().ok();
+            }
+        }
 
-        led_pin.set_low().unwrap();
-        // delay.delay_ms(500);
+        // led_pin.set_high().unwrap();
+        // delay.delay_ms(100);
+        //
+        // led_pin.set_low().unwrap();
+        delay.delay_ms(1);
+        counter += 1;
     }
 }
 

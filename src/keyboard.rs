@@ -71,35 +71,45 @@ impl Keyboard {
     }
 
     pub(crate) fn send_report(&mut self, delay: &mut Delay) {
-        let mut keycodes: [u8; 6] = [0; 6];
+        let mut keys: [u8; 6] = [0; 6];
         let mut keys_pressed: u8 = 0;
 
         for col in 0..self.col_pins.len() {
-            self.row_pins[col].set_high().unwrap();
+            self.col_pins[col].set_high().unwrap();
+
+            delay.delay_us(10);
 
             for row in 0..self.row_pins.len() {
                 if self.row_pins[row].is_high().unwrap() {
-                    keycodes[keys_pressed as usize] = self.keymaps[1].get_keycode(row, col);
+                    keys[keys_pressed as usize] = self.keymaps[1].get_keycode(row, col);
                     keys_pressed += 1;
                     if keys_pressed == 5 {
                         let _ = Keyboard::send_keyboard_report(MyKeyboardReport {
                             modifier: 0,
                             reserved: 0,
-                            keycodes,
+                            keycodes: keys,
                         });
                         return;
                     }
                 }
             }
 
-            self.row_pins[col].set_low().unwrap();
-            delay.delay_ms(1);
+            self.col_pins[col].set_low().unwrap();
+            delay.delay_us(10);
         }
 
         let _ = Keyboard::send_keyboard_report(MyKeyboardReport {
             modifier: 0,
             reserved: 0,
-            keycodes,
+            keycodes: keys,
+        });
+    }
+
+    pub(crate) fn send_empty_report(&self) {
+        let _ = Keyboard::send_keyboard_report(MyKeyboardReport {
+            modifier: 0,
+            reserved: 0,
+            keycodes: [0, 0, 0, 0, 0, 0],
         });
     }
 
