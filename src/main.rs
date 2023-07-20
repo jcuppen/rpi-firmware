@@ -150,15 +150,8 @@ unsafe fn main() -> ! {
     let mut counter: usize = 0;
 
     loop {
-        //delay.delay_ms(100);
-        // c.set_high().unwrap();
-        // if r.is_high().unwrap() {
-        //     test.set_high().unwrap();
-        //     Keyboard::send_a().unwrap();
-        // } else {
-        //     test.set_low().unwrap()
-        // }
         //loop actions
+
         //rotary_encoder.loop_action();
         kb.send_report(&mut delay);
 
@@ -185,10 +178,6 @@ unsafe fn main() -> ! {
             }
         }
 
-        // led_pin.set_high().unwrap();
-        // delay.delay_ms(100);
-        //
-        // led_pin.set_low().unwrap();
         delay.delay_ms(1);
         counter += 1;
     }

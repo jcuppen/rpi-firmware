@@ -81,7 +81,7 @@ impl Keyboard {
 
             for row in 0..self.row_pins.len() {
                 if self.row_pins[row].is_high().unwrap() {
-                    keys[keys_pressed as usize] = self.keymaps[1].get_keycode(row, col);
+                    keys[keys_pressed as usize] = self.keymaps[0].get_keycode(row, col);
                     keys_pressed += 1;
                     if keys_pressed == 5 {
                         let _ = Keyboard::send_keyboard_report(MyKeyboardReport {
@@ -95,7 +95,6 @@ impl Keyboard {
             }
 
             self.col_pins[col].set_low().unwrap();
-            delay.delay_us(10);
         }
 
         let _ = Keyboard::send_keyboard_report(MyKeyboardReport {
