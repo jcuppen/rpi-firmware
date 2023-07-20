@@ -1,6 +1,6 @@
-//! Rotary Encoder
+//! # Rotary Encoder
 //!
-//! Top Down Perspective
+//!     Top Down Perspective
 //!       ┌────────────────────────┐
 //!     ┌─┤                        ├─┐
 //!     │ │ dt(PD/PU)        + / - │ │

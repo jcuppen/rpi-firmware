@@ -60,10 +60,10 @@ impl Keyboard {
         };
 
         for r in kb.row_pins.as_mut_slice() {
-            r.into_push_pull_output()
+            r.into_pull_down_input()
         }
         for c in kb.col_pins.as_mut_slice() {
-            c.into_pull_down_input();
+            c.into_push_pull_output();
         }
 
         kb
@@ -73,11 +73,11 @@ impl Keyboard {
         let mut keycodes: [u8; 6] = [0; 6];
         let mut keys_pressed: u8 = 0;
 
-        for row in 0..self.row_pins.len() {
-            self.row_pins[row].set_high().unwrap();
+        for col in 0..self.col_pins.len() {
+            self.row_pins[col].set_high().unwrap();
 
-            for col in 0..self.col_pins.len() {
-                if self.col_pins[col].is_high().unwrap() {
+            for row in 0..self.row_pins.len() {
+                if self.row_pins[row].is_high().unwrap() {
                     keycodes[keys_pressed as usize] = self.keymaps[1].get_keycode(row, col);
                     keys_pressed += 1;
                     if keys_pressed == 5 {
@@ -86,13 +86,14 @@ impl Keyboard {
                             reserved: 0,
                             keycodes,
                         })
-                        .unwrap();
+                        .ok()
+                        .unwrap_or(0);
                         return;
                     }
                 }
             }
 
-            self.row_pins[row].set_low().unwrap();
+            self.row_pins[col].set_low().unwrap();
             delay.delay_ms(1);
         }
 
@@ -101,13 +102,28 @@ impl Keyboard {
             reserved: 0,
             keycodes,
         })
-        .unwrap();
+        .ok()
+        .unwrap_or(0);
     }
 
     fn send_keyboard_report(report: MyKeyboardReport) -> Result<usize, UsbError> {
         critical_section::with(|_| unsafe {
             // Now interrupts are disabled, grab the global variable and, if
             // available, send it a HID report
+            USB_HID.as_mut().map(|hid| hid.push_input(&report))
+        })
+        .unwrap()
+    }
+
+    pub(crate) fn send_a() -> Result<usize, UsbError> {
+        critical_section::with(|_| unsafe {
+            // Now interrupts are disabled, grab the global variable and, if
+            // available, send it a HID report
+            let report = MyKeyboardReport {
+                modifier: 0,
+                reserved: 0,
+                keycodes: [0x04, 0, 0, 0, 0, 0],
+            };
             USB_HID.as_mut().map(|hid| hid.push_input(&report))
         })
         .unwrap()

@@ -1,4 +1,4 @@
-//! Seven Digit Display
+//! # Seven Digit Display
 //!
 //!      g f - a b
 //!      │ │ │ │ │
@@ -15,7 +15,7 @@
 //!     └┬─┬─┬─┬─┬┘
 //!      │ │ │ │ │
 //!      e d - c .
-//!  note: - needs to be connected to a 220Ω resistor
+//!  note: `-` needs to be connected to a 220Ω resistor
 
 use embedded_hal::digital::v2::OutputPin;
 use rp_pico::hal::gpio::{Pin, PinId, PullDownDisabled, PushPullOutput};

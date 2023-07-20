@@ -9,7 +9,7 @@ mod keyboard;
 use core::panic::PanicInfo;
 use rp_pico as bsp;
 
-use crate::keyboard::{KeyMap, MyKeyboardReport};
+use crate::keyboard::{KeyMap, Keyboard, MyKeyboardReport};
 // use crate::rotary_encoder::{Direction, RotaryEncoder};
 // use crate::seven_segment_display::Glyph::{One, Zero};
 use bsp::entry;
@@ -17,7 +17,8 @@ use bsp::hal::clocks::{init_clocks_and_plls, Clock};
 use bsp::hal::pac;
 use bsp::hal::sio::Sio;
 use bsp::hal::watchdog::Watchdog;
-use embedded_hal::digital::v2::OutputPin;
+use cortex_m::delay::Delay;
+use embedded_hal::digital::v2::{InputPin, OutputPin};
 use rp_pico::hal;
 use rp_pico::hal::gpio::DynPin;
 use usb_device::bus::UsbBusAllocator;
@@ -119,9 +120,9 @@ unsafe fn main() -> ! {
 
     let layer_one = KeyMap::create([[0x04, 0x05, 0x06], [0x14, 0x15, 0x16]]);
 
-    let mut kb = keyboard::Keyboard::create(row_pins, col_pins, [layer_one]);
+    let mut kb = Keyboard::create(row_pins, col_pins, [layer_one]);
 
-    let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
+    let mut delay = Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
 
     let mut led_pin = pins.led.into_push_pull_output();
 
@@ -136,14 +137,23 @@ unsafe fn main() -> ! {
     //     pins.gpio18,
     // );
 
+    //let mut c = pins.gpio9.into_push_pull_output();
+    //let r = pins.gpio15.into_pull_down_input();
     // Create a text style for drawing the font:
 
     //let mut rotary_encoder = RotaryEncoder::create(pins.gpio13, pins.gpio14, pins.gpio15);
 
     let mut test = pins.gpio12.into_push_pull_output();
-    test.set_high().unwrap();
+    test.set_low().unwrap();
 
     loop {
+        // c.set_high().unwrap();
+        // if r.is_high().unwrap() {
+        //     test.set_high().unwrap();
+        //     Keyboard::send_a().unwrap();
+        // } else {
+        //     test.set_low().unwrap()
+        // }
         //loop actions
         //rotary_encoder.loop_action();
         kb.send_report(&mut delay);
@@ -168,7 +178,7 @@ unsafe fn main() -> ! {
 
         led_pin.set_low().unwrap();
         // delay.delay_ms(500);
-        delay.delay_ms(1);
+        delay.delay_ms(500);
     }
 }
 
