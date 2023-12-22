@@ -1,7 +1,7 @@
 use cortex_m::delay::Delay;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
 use panic_halt as _;
-use rp_pico::hal::gpio::DynPin;
+use pimoroni_tiny2040::hal::gpio::DynPin;
 use usb_device::class_prelude::*;
 use usbd_hid::descriptor::gen_hid_descriptor;
 use usbd_hid::descriptor::generator_prelude::*;
@@ -29,11 +29,11 @@ pub(crate) struct MyKeyboardReport {
 use crate::USB_HID;
 
 pub(crate) struct KeyMap {
-    matrix: [[u8; 3]; 2],
+    matrix: [[u8; 4]; 5],
 }
 
 impl KeyMap {
-    pub(crate) fn new(matrix: [[u8; 3]; 2]) -> KeyMap {
+    pub(crate) fn new(matrix: [[u8; 4]; 5]) -> KeyMap {
         Self { matrix }
     }
 
@@ -43,15 +43,15 @@ impl KeyMap {
 }
 
 pub(crate) struct Keyboard {
-    row_pins: [DynPin; 2],
-    col_pins: [DynPin; 3],
+    row_pins: [DynPin; 5],
+    col_pins: [DynPin; 4],
     keymaps: [KeyMap; 1],
 }
 
 impl Keyboard {
     pub(crate) fn new(
-        row_pins: [DynPin; 2],
-        col_pins: [DynPin; 3],
+        row_pins: [DynPin; 5],
+        col_pins: [DynPin; 4],
         keymaps: [KeyMap; 1],
     ) -> Keyboard {
         let mut kb = Self {
@@ -61,7 +61,7 @@ impl Keyboard {
         };
 
         for r in kb.row_pins.as_mut_slice() {
-            r.into_pull_down_input()
+            r.into_pull_down_input();
         }
         for c in kb.col_pins.as_mut_slice() {
             c.into_push_pull_output();
@@ -74,14 +74,14 @@ impl Keyboard {
         let mut keys: [u8; 6] = [0; 6];
         let mut keys_pressed: u8 = 0;
 
-        for col in 0..self.col_pins.len() {
-            self.col_pins[col].set_high().unwrap();
+        for (y, c) in self.col_pins.iter_mut().enumerate() {
+            c.set_high().unwrap();
 
             delay.delay_us(10);
 
-            for row in 0..self.row_pins.len() {
-                if self.row_pins[row].is_high().unwrap() {
-                    keys[keys_pressed as usize] = self.keymaps[0].get_keycode(row, col);
+            for (x, r) in self.row_pins.iter_mut().enumerate() {
+                if r.is_high().unwrap() {
+                    keys[keys_pressed as usize] = self.keymaps[0].get_keycode(x, y);
                     keys_pressed += 1;
                     if keys_pressed == 5 {
                         let _ = Keyboard::send_keyboard_report(MyKeyboardReport {
@@ -94,7 +94,7 @@ impl Keyboard {
                 }
             }
 
-            self.col_pins[col].set_low().unwrap();
+            c.set_low().unwrap();
         }
 
         let _ = Keyboard::send_keyboard_report(MyKeyboardReport {

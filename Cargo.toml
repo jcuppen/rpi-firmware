@@ -13,10 +13,14 @@ defmt-rtt = "0.4"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
 # We're using a Pico by default on this template
-rp-pico = "0.7"
-
+#rp-pico = "0.7"
+pimoroni-tiny2040 = "0.5.0"
 usb-device = "0.2"
 usbd-hid = "0.6"
+
+smart-leds = "0.3.0"
+
+ws2812-pio = "0.6.0"
 
 critical-section = "1.1"
 panic-halt = "0.2"
